@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const videoSchema = mongoose.Schema({
   videofile: {
@@ -18,15 +19,23 @@ const videoSchema = mongoose.Schema({
     required: true,
   },
   duration: {
-    type: Number, 
+    type: Number, //will get this from the cloudinary 
     required: true,
   },
   views: {
     type: Number, 
-    required: true,
+    default: 0,
   },
   isPublished: {
-    type: , 
-    required: true,
+    type: Boolean, 
+    default: true,
   },
+  owner: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  }
 },{timestamps: true})
+
+videoSchema.plugin(mongooseAggregatePaginate) // To use the aggregate queries
+
+export const Video = mongoose.model("Video", videoSchema)
