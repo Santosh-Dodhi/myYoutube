@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-const userSchema = mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
     username: {
       type: String,
@@ -62,31 +62,31 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-userSchema.methods.isPassWordCorrect = async function (password) {
+userSchema.methods.isPassWordCorrect = async function (password: string) {
   return await bcrypt.compare(password, this.password); //it directly returns boolean value `true` or `false`.
 };
 
-userSchema.models.generateAccessToken = async function () {
-  return await jwt.sign(
+userSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
     {
       _id: this._id,
       email: this.email,
       username: this.username,
       fullName: this.fullName,
     },
-    process.env.ACCESS_TOKEN_SECRET,
+    process.env.ACCESS_TOKEN_SECRET!,
     {
       expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
     }
   );
 };
 
-userSchema.methods.refreshAccessToken = async function () {
-  return await jwt.signJ(
+userSchema.methods.refreshAccessToken = function () {
+  return jwt.sign(
     {
       _id: this._id,
     },
-    process.env.REFRESH_TOKEN_SECRET,
+    process.env.REFRESH_TOKEN_SECRET!,
     {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
     }

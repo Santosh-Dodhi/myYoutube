@@ -1,14 +1,8 @@
-// The below line will work but we want consistenty in the import statement in our whole project. So we will use another method for this.
-
-// require('dotenv').config({path: './env'})
-
 import dotenv from "dotenv";
-import connectDB from "./db/index.js";
-import app from "./app.js";
+import connectDB from "./db/index";
+import app from "./app";
 
-dotenv.config({
-  path: "./env", // Tells that ./env file is present in out root directory.
-});
+dotenv.config();
 
 connectDB()
   .then(() => {
@@ -17,7 +11,7 @@ connectDB()
       throw err;
     });
 
-    myPort = process.env.PORT || 8000;
+    const myPort = process.env.PORT || 8000;
     app.listen(myPort, () => {
       console.log(`The app is running on the PORT:: ${myPort}`);
     });

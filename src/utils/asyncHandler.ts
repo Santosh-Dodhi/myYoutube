@@ -5,12 +5,22 @@
 //? Below are 2 methods, we can use whichever we want.
 
 // Method I: Using Promise
-const asyncHandler = (func) => {
-  (err, req, res, next) => {
-    Promise.resolve(func(err, req, res, next))  
-    .catch((err)=> next(err));  
+import { Request, Response, NextFunction } from "express";
+
+type AsyncHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<void>;
+
+const asyncHandler = (func: AsyncHandler): AsyncHandler => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    await Promise.resolve(func(req, res, next)).catch(next);
   };
 };
+
+export default asyncHandler;
+
 
 // Method II: Using try catch block
 // const asyncHandler = (func) => { async (err, req, res, next) => {

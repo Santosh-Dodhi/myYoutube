@@ -15,4 +15,14 @@ app.use(express.urlencoded({extended: true, limit: MAX_FILE_SIZE})) // to unders
 app.use(express.static("public")) // To store user img or files temporary in the server.
 app.use(cookieParser());
 
+//routes import
+import userRouter from "./routes/user.routes"
+
+//routes
+app.get('/', (req, res)=>{
+  console.log("Health check");
+  res.send("Health Check Success");
+});
+app.use("/api/v1/users", userRouter)
+
 export default app;
