@@ -6,3 +6,5 @@ class ApiResponse {
     public success = statusCode < 400,
   ) {}
 }
+
+export {ApiResponse}
