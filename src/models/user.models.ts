@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 import jwt, { Secret } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export interface IUser extends Document {
+  _id: Types.ObjectId;  // Explicitly add _id
   username: string;
   email: string;
   fullName: string;

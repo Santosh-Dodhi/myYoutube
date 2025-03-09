@@ -4,7 +4,8 @@ import { User, IUser } from "../models/user.models";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { ApiResponse } from "../utils/ApiResponse";
 import { Request } from "express";
-import { ObjectId } from "mongoose";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 
 const registerUser = asyncHandler(async (req, res) => {
   //take all the attributes: (username, email, fullName, avatar, password...) from Frontend
@@ -112,6 +113,7 @@ const loginUser = asyncHandler(async (req, res) => {
   //send cookie
 
   const { username, email, password } = req.body;
+  console.log(username, email);
 
   if (!username && !email) {
     throw new ApiError(400, "Please enter your email or username to login.");
@@ -135,10 +137,12 @@ const loginUser = asyncHandler(async (req, res) => {
   ); //here instead of sending the user_$id, I am directly sending the user.
 
   // user = user.onselect('-password -refreshToken')
-  const createdUser = await User.findById(user._id).select("-password -refreshToken")
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
-  if(!createdUser){
-    throw new ApiError(500, "Something went wrong while logging in the user.")
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong while logging in the user.");
   }
 
   //cookie
@@ -179,6 +183,87 @@ const generateAccessAndRefreshTokens = async (userId: any) => {
   }
 };
 
-const logoutUser = asyncHandler(async (req, res) => {});
+const logoutUser = asyncHandler(async (req: AuthenticatedRequest, res) => {
+  //delete the refresh token in the database
+  const user = await User.findByIdAndUpdate(
+    req.user!._id,
+    {
+      $set: {
+        refreshToken: "undefined",
+      },
+    },
+    {
+      new: true, //to return the object after updation
+    }
+  );
 
-export { registerUser, loginUser, generateAccessAndRefreshTokens, logoutUser };
+  //delete the cookies stored
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged Out."));
+});
+
+const refreshAccessToken = asyncHandler(
+  async (req: AuthenticatedRequest, res) => {
+    const incomingRefreshToken =
+      req.cookies.refreshToken || req.body.refreshToken; //req.body if request is coming from the mobile user.
+    if (!incomingRefreshToken) {
+      throw new ApiError(401, "Unauthorized Request.");
+    }
+
+    try {
+      const decodedToken = jwt.verify(
+        incomingRefreshToken,
+        process.env.REFRESH_TOKEN_SECRET as string
+      ) as JwtPayload;
+  
+      const user = await User.findById(decodedToken._id);
+  
+      if (!user) {
+        throw new ApiError(400, "Invalid Refresh Token");
+      }
+  
+      if (user?.refreshToken !== incomingRefreshToken) {
+        throw new ApiError(400, "Refresh Token is expired or used");
+      }
+  
+      // const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user?._id);
+  
+      //! Here i have just updated the accessToken not the refreshToken.
+      const newAccessToken = await user!.generateAccessToken();
+      const options = {
+        httpOnly: true,
+        secure: true,
+      };
+      res
+        .status(200)
+        .cookie("accessToken", newAccessToken, options)
+        .cookie("refreshToken", incomingRefreshToken, options)
+        .json(
+          new ApiResponse(
+            200,
+            { accessToken: newAccessToken, refreshToken: incomingRefreshToken },
+            "Updated Access Token"
+          )
+        );
+    } catch (error) {
+      const err = error as Error
+      throw new ApiError(501, err?.message || "Something went wrong while generating the new AccessToken.")
+    }
+  }
+);
+
+export {
+  registerUser,
+  loginUser,
+  generateAccessAndRefreshTokens,
+  logoutUser,
+  refreshAccessToken,
+};

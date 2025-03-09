@@ -33,4 +33,4 @@ const jwtVerify = asyncHandler(async (req: AuthenticatedRequest, res: Response, 
 
 })
 
-export {jwtVerify}
+export {jwtVerify, AuthenticatedRequest }
