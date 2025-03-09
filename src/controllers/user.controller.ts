@@ -223,19 +223,19 @@ const refreshAccessToken = asyncHandler(
         incomingRefreshToken,
         process.env.REFRESH_TOKEN_SECRET as string
       ) as JwtPayload;
-  
+
       const user = await User.findById(decodedToken._id);
-  
+
       if (!user) {
         throw new ApiError(400, "Invalid Refresh Token");
       }
-  
+
       if (user?.refreshToken !== incomingRefreshToken) {
         throw new ApiError(400, "Refresh Token is expired or used");
       }
-  
+
       // const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user?._id);
-  
+
       //! Here i have just updated the accessToken not the refreshToken.
       const newAccessToken = await user!.generateAccessToken();
       const options = {
@@ -254,9 +254,27 @@ const refreshAccessToken = asyncHandler(
           )
         );
     } catch (error) {
-      const err = error as Error
-      throw new ApiError(501, err?.message || "Something went wrong while generating the new AccessToken.")
+      const err = error as Error;
+      throw new ApiError(
+        501,
+        err?.message ||
+          "Something went wrong while generating the new AccessToken."
+      );
     }
+  }
+);
+
+const changeCurrentPassword = asyncHandler(
+  async (req: AuthenticatedRequest, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const user = await User.findById(req.user?._id);
+    const isCorrect = await user?.isPassWordCorrect(oldPassword);
+    if (!isCorrect) {
+      throw new ApiError(400, "Old Password is incorrect");
+    }
+    user!.password = newPassword;
+    await user?.save({ validateBeforeSave: false});
+
   }
 );
 
@@ -266,4 +284,5 @@ export {
   generateAccessAndRefreshTokens,
   logoutUser,
   refreshAccessToken,
+  changeCurrentPassword
 };
