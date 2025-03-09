@@ -1,9 +1,10 @@
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
-import { User } from "../models/user.models";
+import { User, IUser } from "../models/user.models";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { ApiResponse } from "../utils/ApiResponse";
 import { Request } from "express";
+import { ObjectId } from "mongoose";
 
 const registerUser = asyncHandler(async (req, res) => {
   //take all the attributes: (username, email, fullName, avatar, password...) from Frontend
@@ -102,4 +103,82 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, createdUser, "User created successfully", true));
 });
 
-export { registerUser };
+const loginUser = asyncHandler(async (req, res) => {
+  //take data from frontend req body
+  //login using username or email
+  //find the user
+  //check password
+  //generate the access and the refresh token
+  //send cookie
+
+  const { username, email, password } = req.body;
+
+  if (!username && !email) {
+    throw new ApiError(400, "Please enter your email or username to login.");
+  }
+
+  let user = await User.findOne({
+    $or: [{ username }, { email }],
+  });
+
+  if (!user) {
+    throw new ApiError(400, "User doesn't exists.");
+  }
+
+  const isPassWordValid = await user.isPassWordCorrect(password);
+  if (!isPassWordValid) {
+    throw new ApiError(400, "Password is incorrect");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  ); //here instead of sending the user_$id, I am directly sending the user.
+
+  // user = user.onselect('-password -refreshToken')
+  const createdUser = await User.findById(user._id).select("-password -refreshToken")
+
+  if(!createdUser){
+    throw new ApiError(500, "Something went wrong while logging in the user.")
+  }
+
+  //cookie
+  const options = {
+    httpOnly: true,
+    secure: true, // only server can change the cookie.
+  };
+
+  res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { user: createdUser, accessToken, refreshToken },
+        "User loggined successfully."
+      )
+    );
+});
+
+const generateAccessAndRefreshTokens = async (userId: any) => {
+  try {
+    const user = await User.findById(userId);
+
+    const accessToken = await user!.generateAccessToken();
+    const refreshToken = await user!.generateRefreshToken();
+
+    user!.refreshToken = refreshToken;
+    await user!.save({ validateBeforeSave: true }); //As by default User model needs password is required but validateBeforeSave: true suggests no need of password
+
+    return { accessToken, refreshToken };
+  } catch (error) {
+    throw new ApiError(
+      500,
+      "Something went wrong while generating the access and the refresh tokens."
+    );
+  }
+};
+
+const logoutUser = asyncHandler(async (req, res) => {});
+
+export { registerUser, loginUser, generateAccessAndRefreshTokens, logoutUser };
