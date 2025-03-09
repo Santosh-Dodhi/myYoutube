@@ -273,22 +273,47 @@ const changeCurrentPassword = asyncHandler(
       throw new ApiError(400, "Old Password is incorrect");
     }
     user!.password = newPassword;
-    await user?.save({ validateBeforeSave: false});
-
+    await user?.save({ validateBeforeSave: false });
   }
 );
 
-const getCurrentUser = asyncHandler(async(req: AuthenticatedRequest, res)=>{
-  const user = await User.findById(req.user?._id).select("-password -refreshToken");
-  if (!user){
-    throw new ApiError(500, "Something went wrong while getting the user details.")
+const getCurrentUser = asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const user = await User.findById(req.user?._id).select(
+    "-password -refreshToken"
+  );
+  if (!user) {
+    throw new ApiError(
+      500,
+      "Something went wrong while getting the user details."
+    );
   }
   res
-  .status(200)
-  .json(new ApiResponse(200, {user}, "Shared User Details Successfully"))
-})
+    .status(200)
+    .json(new ApiResponse(200, { user }, "Shared User Details Successfully"));
+});
 
+const updateAccountDetails = asyncHandler(
+  async (req: AuthenticatedRequest, res) => {
+    const { fullName, email } = req.body;
+    if (!fullName && !email) {
+      throw new ApiError(400, "Please provide either email or full name");
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          fullName,
+          email,
+        },
+      },
+      { new: true }
+    ).select("-password -refreshToken");
 
+    res
+    .status(200)
+    .json(new ApiResponse(200, {user}, "Updated the user details"))
+  }
+);
 
 export {
   registerUser,
@@ -296,5 +321,6 @@ export {
   generateAccessAndRefreshTokens,
   logoutUser,
   refreshAccessToken,
-  changeCurrentPassword
+  changeCurrentPassword,
+  updateAccountDetails
 };
