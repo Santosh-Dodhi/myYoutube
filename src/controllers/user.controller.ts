@@ -278,6 +278,18 @@ const changeCurrentPassword = asyncHandler(
   }
 );
 
+const getCurrentUser = asyncHandler(async(req: AuthenticatedRequest, res)=>{
+  const user = await User.findById(req.user?._id).select("-password -refreshToken");
+  if (!user){
+    throw new ApiError(500, "Something went wrong while getting the user details.")
+  }
+  res
+  .status(200)
+  .json(new ApiResponse(200, {user}, "Shared User Details Successfully"))
+})
+
+
+
 export {
   registerUser,
   loginUser,
