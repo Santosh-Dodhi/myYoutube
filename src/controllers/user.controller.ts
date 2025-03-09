@@ -315,6 +315,57 @@ const updateAccountDetails = asyncHandler(
   }
 );
 
+const updateUserAvatar = asyncHandler(async(req: AuthenticatedRequest, res)=>{
+  const newAvatarFileLocalPath = req.file?.path;
+
+  if(!newAvatarFileLocalPath){
+    throw new ApiError(400, "Please provide an avatar image file.");
+  }
+  
+  const avatar = await uploadOnCloudinary(newAvatarFileLocalPath);
+  const avatarUrl = typeof avatar === "object" && avatar?.secure_url ? avatar.secure_url : null;
+  
+  if(!avatarUrl){
+    throw new ApiError(500, "Failed to upload the avatar image.");
+  }
+
+  const user = await User.findByIdAndUpdate(req.user?._id, {
+    $set: {
+      avatar: avatarUrl
+    }
+  }, {new: true}).select("-password -refreshToken")
+
+  res
+  .status(200)
+  .json(new ApiResponse(200, {user}, "Avatar Image file updated successfully."))
+})
+
+const updateUserCoverImage = asyncHandler(async(req: AuthenticatedRequest, res)=>{
+  const newCoverImageFileLocalPath = req.file?.path;
+
+  if(!newCoverImageFileLocalPath){
+    throw new ApiError(400, "Please provide an coverImage image file.");
+  }
+  
+  const coverImage = await uploadOnCloudinary(newCoverImageFileLocalPath);
+  const coverImageUrl = typeof coverImage === "object" && coverImage?.secure_url ? coverImage.secure_url : null;
+  
+  if(!coverImageUrl){
+    throw new ApiError(500, "Failed to upload the coverImage image.");
+  }
+
+  const user = await User.findByIdAndUpdate(req.user?._id, {
+    $set: {
+      coverImage: coverImageUrl
+    }
+  }, {new: true}).select("-password -refreshToken")
+
+  res
+  .status(200)
+  .json(new ApiResponse(200, {user}, "CoverImage file updated successfully."))
+})
+
+
 export {
   registerUser,
   loginUser,
@@ -322,5 +373,7 @@ export {
   logoutUser,
   refreshAccessToken,
   changeCurrentPassword,
-  updateAccountDetails
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage
 };
