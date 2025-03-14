@@ -47,6 +47,8 @@ router
   .patch(jwtVerify, upload.single("coverImage"), updateUserCoverImage);
 
 router.route("/c/:username").get(jwtVerify, getUserChannelProfile); // whatever we write after the colon is a parameter
+// While fetching the channelProfile use the url `/c/nirankar` here nirankar is the username don’t use the key - value params in the postman
+
 
 router.route("/watch-history").get(jwtVerify, getUserWatchHistory);
 
